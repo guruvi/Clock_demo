@@ -1,25 +1,47 @@
 // video.js — Video preload, readiness handshake, playback, measurement
 
 const VideoManager = (() => {
-  let _video = null;
+  let _media = null;  // active media element (video or audio)
   let _autoplayed = false;
 
   function init() {
-    _video = document.getElementById('demo-video');
-    if (!_video) return;
+    const video = document.getElementById('demo-video');
+    const audio = document.getElementById('demo-audio');
 
-    _video.addEventListener('loadedmetadata', () => {
-      _video.load();
+    // Try video first, fall back to audio
+    _tryLoad(video, () => {
+      // video failed to load, try audio
+      if (video) video.style.display = 'none';
+      _tryLoad(audio, () => {
+        // both failed
+        console.warn('No media file found (tried sync_demo.mp4 and sync_demo.mp3)');
+      });
     });
+  }
 
-    _video.addEventListener('canplaythrough', () => {
+  function _tryLoad(el, onError) {
+    if (!el) { onError(); return; }
+
+    el.addEventListener('canplaythrough', () => {
+      _media = el;
+      if (el.tagName === 'VIDEO') el.style.display = 'block';
+      else {
+        // Show audio player UI
+        el.style.display = 'block';
+        el.controls = true;
+      }
       state.video.ready = true;
       _updateReadyUI();
-      PeerManager.send({ type: 'READY_CHECK', videoSrc: _video.src });
-    });
+      PeerManager.send({ type: 'READY_CHECK', videoSrc: el.src });
+    }, { once: true });
 
-    // Fallback: if canplaythrough fired before listener attached
-    if (_video.readyState >= 4) {
+    el.addEventListener('error', () => onError(), { once: true });
+
+    el.load();
+
+    // Fallback: already buffered
+    if (el.readyState >= 4) {
+      _media = el;
       state.video.ready = true;
       _updateReadyUI();
     }
@@ -56,19 +78,19 @@ const VideoManager = (() => {
 
   function unlockAutoplay() {
     // Called from first button tap to unlock autoplay for future programmatic play()
-    if (_autoplayed || !_video) return;
+    if (_autoplayed || !_media) return;
     _autoplayed = true;
-    const p = _video.play();
+    const p = _media.play();
     if (p && p.then) {
-      p.then(() => { _video.pause(); _video.currentTime = 0; }).catch(() => {});
+      p.then(() => { _media.pause(); _media.currentTime = 0; }).catch(() => {});
     }
   }
 
   function playNow() {
-    if (!_video) return 0;
-    _video.currentTime = 0;
+    if (!_media) return 0;
+    _media.currentTime = 0;
     const epochMs = Date.now();
-    _video.play().then(() => {
+    _media.play().then(() => {
       state.video.myStartEpoch = Date.now();
       PeerManager.send({ type: 'PLAY_START', epochMs: state.video.myStartEpoch });
     }).catch(err => console.error('play() failed:', err));
@@ -76,8 +98,8 @@ const VideoManager = (() => {
   }
 
   function schedulePlay(epochMs) {
-    if (!_video) return;
-    _video.currentTime = 0;
+    if (!_media) return;
+    _media.currentTime = 0;
     const delay = epochMs - Date.now();
 
     if (delay < 0) {
@@ -87,8 +109,8 @@ const VideoManager = (() => {
     }
 
     setTimeout(() => {
-      _video.currentTime = 0;
-      _video.play().then(() => {
+      _media.currentTime = 0;
+      _media.play().then(() => {
         state.video.myStartEpoch = Date.now();
         PeerManager.send({ type: 'PLAY_START', epochMs: state.video.myStartEpoch });
       }).catch(err => console.error('schedulePlay play() failed:', err));
@@ -105,9 +127,9 @@ const VideoManager = (() => {
   function resetForStep() {
     state.video.myStartEpoch = null;
     state.video.peerStartEpoch = null;
-    if (_video) {
-      _video.pause();
-      _video.currentTime = 0;
+    if (_media) {
+      _media.pause();
+      _media.currentTime = 0;
     }
   }
 
