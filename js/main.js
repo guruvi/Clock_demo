@@ -157,9 +157,11 @@ function _showPeerPanel(peerId) {
   if (idEl) idEl.textContent = peerId;
 
   const qrContainer = document.getElementById('qr-container');
-  if (qrContainer) {
+  if (qrContainer && peerId) {
     qrContainer.innerHTML = '';
-    const url = `${window.location.href.split('?')[0]}?peer=${peerId}`;
+    const base = window.location.origin + window.location.pathname;
+    const url = `${base}?peer=${peerId}`;
+    console.log('[QR] Generating for URL:', url);
     new QRCode(qrContainer, {
       text: url,
       width: 180,
