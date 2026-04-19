@@ -115,6 +115,16 @@ function onConnected(evt) {
 
   if (state.role === 'host') {
     goToStep(1);
+  } else {
+    // Guest: show arm buttons instead of play buttons
+    ['btn-play-synced', 'btn-play-ntp'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) btn.style.display = 'none';
+    });
+    ['btn-arm-synced', 'btn-arm-ntp'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) btn.style.display = 'block';
+    });
   }
 }
 
@@ -262,6 +272,18 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btn-play-ntp').addEventListener('click', () => {
     VideoManager.unlockAutoplay();
     if (state.role === 'host') NTPSync.schedulePlay();
+  });
+
+  document.getElementById('btn-arm-synced').addEventListener('click', () => {
+    VideoManager.unlockAutoplay();
+    const btn = document.getElementById('btn-arm-synced');
+    if (btn) { btn.textContent = '✓ Armed'; btn.disabled = true; }
+  });
+
+  document.getElementById('btn-arm-ntp').addEventListener('click', () => {
+    VideoManager.unlockAutoplay();
+    const btn = document.getElementById('btn-arm-ntp');
+    if (btn) { btn.textContent = '✓ Armed'; btn.disabled = true; }
   });
 
   document.getElementById('btn-run-all').addEventListener('click', () => {
