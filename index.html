@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Clock Sync Demo</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ── Status Bar ── -->
+  <header id="status-bar">
+    <div id="status-left">
+      <span id="status-dot"></span>
+      <span id="status-text">Connecting...</span>
+      <span id="status-peer-id"></span>
+    </div>
+    <div id="status-right">
+      <span class="status-label">Offset</span>
+      <span id="status-offset" class="status-offset">—</span>
+    </div>
+    <button id="hamburger-btn" aria-label="Menu">&#9776;</button>
+  </header>
+
+  <!-- ── Hamburger Menu ── -->
+  <nav id="hamburger-menu">
+    <div class="menu-item" data-step="1">① Manual</div>
+    <div class="menu-item" data-step="2">② Cristian's</div>
+    <div class="menu-item" data-step="3">③ NTP</div>
+    <div class="menu-item" data-step="4">④ Summary</div>
+  </nav>
+
+  <!-- ── Clock Display ── -->
+  <section id="clock-section">
+    <div class="clock-col">
+      <div class="clock-label">My Clock</div>
+      <div id="my-clock" class="clock-value">--:--:--.---</div>
+    </div>
+    <div class="clock-col clock-middle">
+      <div class="clock-label">Offset</div>
+      <div id="clock-offset" class="offset-value">—</div>
+    </div>
+    <div class="clock-col">
+      <div class="clock-label">Peer Clock</div>
+      <div id="peer-clock" class="clock-value">--:--:--.---</div>
+    </div>
+  </section>
+
+  <!-- ── Main Panels ── -->
+  <main id="main-content">
+
+    <!-- Panel 0: Connect -->
+    <section class="panel active" id="panel-0">
+      <h2>Connect Phones</h2>
+      <p class="panel-desc">Phone A: share your ID below. Phone B: enter that ID or scan QR.</p>
+
+      <div class="my-id-box">
+        <span class="my-id-label">Your ID</span>
+        <span id="my-peer-id" class="my-id-value">Loading...</span>
+      </div>
+
+      <div id="qr-container" class="qr-container"></div>
+
+      <div class="connect-row">
+        <input id="connect-input" type="text" placeholder="Enter peer ID" autocomplete="off" autocapitalize="none" />
+        <button id="btn-connect" class="btn-primary">Connect</button>
+      </div>
+
+      <p class="hint">Tip: scan the QR from Phone B to auto-connect</p>
+    </section>
+
+    <!-- Panel 1: Manual -->
+    <section class="panel" id="panel-1">
+      <div class="panel-header">
+        <span class="step-badge">Step 1</span>
+        <h2>Manual Press</h2>
+      </div>
+      <p class="panel-desc">Both users press Play at the same time. See the offset.</p>
+
+      <div class="ready-badge loading video-ready-badge">Video loading...</div>
+
+      <div class="play-area">
+        <button id="btn-play-manual" class="btn-play" disabled>▶ Play</button>
+      </div>
+
+      <div id="result-manual" class="result-box" style="display:none"></div>
+
+      <div class="explainer">
+        <strong>Why it's hard:</strong> Human reaction times vary by 50-300ms. Even two people tapping simultaneously will drift apart.
+      </div>
+    </section>
+
+    <!-- Panel 2: Cristian's Algorithm -->
+    <section class="panel" id="panel-2">
+      <div class="panel-header">
+        <span class="step-badge">Step 2</span>
+        <h2>Cristian's Algorithm</h2>
+      </div>
+      <p class="panel-desc">Exchange timestamps over the network to estimate the clock offset.</p>
+
+      <div class="cristian-controls">
+        <button id="btn-run-sync" class="btn-secondary">⟳ Run Sync</button>
+        <span id="cristian-sync-result" class="sync-result" style="display:none"></span>
+      </div>
+
+      <!-- Animated diagram -->
+      <div id="cristian-diagram" class="cristian-diagram">
+        <div class="diag-lanes">
+          <div class="diag-phone diag-left">
+            <div class="diag-label">Phone A (you)</div>
+            <div class="diag-line"></div>
+          </div>
+          <div class="diag-phone diag-right">
+            <div class="diag-label">Phone B (peer)</div>
+            <div class="diag-line"></div>
+          </div>
+        </div>
+        <div class="diag-arrows">
+          <div class="anim-phase phase-ping">
+            <div class="arrow arrow-right">
+              <div class="arrow-line"></div>
+              <div class="arrow-head">▶</div>
+            </div>
+            <div class="arrow-label left-label">t₁ = <span id="formula-t1">?</span></div>
+            <div class="arrow-label msg-label">PING</div>
+          </div>
+          <div class="anim-phase phase-pong">
+            <div class="arrow arrow-left">
+              <div class="arrow-line"></div>
+              <div class="arrow-head">◀</div>
+            </div>
+            <div class="arrow-label right-label">T = <span id="formula-T">?</span></div>
+            <div class="arrow-label msg-label">PONG</div>
+          </div>
+          <div class="anim-phase phase-done">
+            <div class="formula-box">
+              <div>t₂ = <span id="formula-t2">?</span></div>
+              <div>RTT = t₂ − t₁ = <span id="formula-rtt">?</span>ms</div>
+              <div>Offset = T + RTT/2 − t₂ = <span id="formula-offset">?</span>ms</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="ready-badge loading video-ready-badge">Video loading...</div>
+      <div class="play-area">
+        <button id="btn-play-synced" class="btn-play" disabled>▶ Play Synced</button>
+      </div>
+
+      <div id="result-cristian" class="result-box" style="display:none"></div>
+
+      <div class="explainer">
+        <strong>How it works:</strong> Measure round-trip time, assume symmetric delay. Estimate peer clock within RTT/2 accuracy.
+      </div>
+    </section>
+
+    <!-- Panel 3: NTP -->
+    <section class="panel" id="panel-3">
+      <div class="panel-header">
+        <span class="step-badge">Step 3</span>
+        <h2>NTP Coordination</h2>
+      </div>
+      <p class="panel-desc">Phones are already NTP-synced. Phone A sends an absolute epoch time — both play at exactly that moment.</p>
+
+      <div class="teaching-box">
+        <span class="teaching-icon">💡</span>
+        <div>Your OS has been silently syncing to internet time servers (NTP) since boot. <strong>Date.now()</strong> is already accurate to ~5ms on both phones.</div>
+      </div>
+
+      <div class="ready-badge loading video-ready-badge">Video loading...</div>
+      <div class="play-area">
+        <button id="btn-play-ntp" class="btn-play" disabled>▶ Play (NTP)</button>
+      </div>
+
+      <div id="ntp-scheduled-time" class="ntp-time" style="display:none"></div>
+      <div id="result-ntp" class="result-box" style="display:none"></div>
+
+      <div class="explainer">
+        <strong>Why it works:</strong> Instead of measuring offset ourselves, we leverage the OS's continuous NTP discipline — sub-10ms accuracy, for free.
+      </div>
+    </section>
+
+    <!-- Panel 4: Summary -->
+    <section class="panel" id="panel-4">
+      <div class="panel-header">
+        <span class="step-badge">Step 4</span>
+        <h2>Summary</h2>
+      </div>
+
+      <canvas id="summary-canvas" class="summary-canvas"></canvas>
+      <div id="summary-descriptions" class="summary-descriptions"></div>
+
+      <div class="play-area">
+        <button id="btn-run-all" class="btn-secondary">↺ Run All Again</button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ── Video Player ── -->
+  <footer id="video-section">
+    <video
+      id="demo-video"
+      src="video/sync_demo.mp4"
+      playsinline
+      preload="auto"
+      class="demo-video"
+    ></video>
+  </footer>
+
+  <!-- ── Nav Bar ── -->
+  <div id="nav-bar">
+    <button id="btn-prev" class="btn-nav" disabled>◀ Prev</button>
+    <div id="step-dots">
+      <span class="dot" data-step="1"></span>
+      <span class="dot" data-step="2"></span>
+      <span class="dot" data-step="3"></span>
+      <span class="dot" data-step="4"></span>
+    </div>
+    <button id="btn-next" class="btn-nav" disabled>Next ▶</button>
+  </div>
+
+  <!-- ── Toast ── -->
+  <div id="toast" class="toast"></div>
+
+  <!-- ── Scripts ── -->
+  <script src="lib/peerjs.min.js"></script>
+  <script src="lib/qrcode.min.js"></script>
+  <script src="js/clock.js"></script>
+  <script src="js/video.js"></script>
+  <script src="js/cristian.js"></script>
+  <script src="js/ntp.js"></script>
+  <script src="js/chart.js"></script>
+  <script src="js/peer.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
