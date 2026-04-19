@@ -238,6 +238,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
+  // On first interaction: unlock autoplay and trigger media load on mobile
+  document.body.addEventListener('click', () => {
+    VideoManager.unlockAutoplay();
+    VideoManager.triggerLoad();
+  }, { once: true });
+
   document.getElementById('btn-play-manual').addEventListener('click', () => {
     VideoManager.unlockAutoplay();
     VideoManager.resetForStep();
