@@ -34,9 +34,11 @@ function onMessage(msg) {
       state.peer.id = msg.peerId;
       break;
 
-    case 'CLOCK_TICK':
-      state.peer.lastClockEpoch = msg.epochMs;
+    case 'CLOCK_TICK': {
+      const oneWay = (Date.now() - msg.sendTime) / 2;
+      state.peer.lastClockEpoch = msg.epochMs + oneWay;
       break;
+    }
 
     case 'READY_CHECK':
       state.video.peerReady = true;
