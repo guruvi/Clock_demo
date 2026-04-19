@@ -108,13 +108,16 @@ const VideoManager = (() => {
       return;
     }
 
+    // Wake up 100ms early, then busy-wait for the exact moment
+    const SPINUP = 100;
     setTimeout(() => {
+      while (Date.now() < epochMs) {}
       _media.currentTime = 0;
       _media.play().then(() => {
         state.video.myStartEpoch = Date.now();
         PeerManager.send({ type: 'PLAY_START', epochMs: state.video.myStartEpoch });
       }).catch(err => console.error('schedulePlay play() failed:', err));
-    }, delay);
+    }, Math.max(0, delay - SPINUP));
   }
 
   function computeOffset() {
