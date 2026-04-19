@@ -161,7 +161,6 @@ function _showPeerPanel(peerId) {
     qrContainer.innerHTML = '';
     const base = window.location.origin + window.location.pathname;
     const url = `${base}?peer=${peerId}`;
-    console.log('[QR] Generating for URL:', url);
     new QRCode(qrContainer, {
       text: url,
       width: 180,
