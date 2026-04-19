@@ -22,29 +22,39 @@ const VideoManager = (() => {
   function _tryLoad(el, onError) {
     if (!el) { onError(); return; }
 
-    el.addEventListener('canplaythrough', () => {
+    const onReady = () => {
       _media = el;
       if (el.tagName === 'VIDEO') el.style.display = 'block';
       else {
-        // Show audio player UI
         el.style.display = 'block';
         el.controls = true;
       }
       state.video.ready = true;
       _updateReadyUI();
       PeerManager.send({ type: 'READY_CHECK', videoSrc: el.src });
-    }, { once: true });
+    };
+
+    el.addEventListener('canplaythrough', onReady, { once: true });
+    // canplay is less strict but fires on mobile where canplaythrough may not
+    el.addEventListener('canplay', onReady, { once: true });
 
     el.addEventListener('error', () => onError(), { once: true });
 
     el.load();
 
     // Fallback: already buffered
-    if (el.readyState >= 4) {
-      _media = el;
-      state.video.ready = true;
-      _updateReadyUI();
+    if (el.readyState >= 2) {
+      onReady();
     }
+  }
+
+  function triggerLoad() {
+    // Called after first user gesture on mobile to kick off buffering
+    if (_media) return;
+    const video = document.getElementById('demo-video');
+    const audio = document.getElementById('demo-audio');
+    if (video) video.load();
+    if (audio) audio.load();
   }
 
   function onPeerReady() {
@@ -77,12 +87,17 @@ const VideoManager = (() => {
   }
 
   function unlockAutoplay() {
-    // Called from first button tap to unlock autoplay for future programmatic play()
+    // Called from first user gesture to unlock autoplay for future programmatic play()
     if (_autoplayed || !_media) return;
     _autoplayed = true;
+    _media.muted = true;
     const p = _media.play();
     if (p && p.then) {
-      p.then(() => { _media.pause(); _media.currentTime = 0; }).catch(() => {});
+      p.then(() => {
+        _media.pause();
+        _media.currentTime = 0;
+        _media.muted = false;
+      }).catch(() => { _media.muted = false; });
     }
   }
 
@@ -136,5 +151,5 @@ const VideoManager = (() => {
     }
   }
 
-  return { init, onPeerReady, unlockAutoplay, playNow, schedulePlay, computeOffset, resetForStep };
+  return { init, onPeerReady, unlockAutoplay, triggerLoad, playNow, schedulePlay, computeOffset, resetForStep };
 })();
