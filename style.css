@@ -319,6 +319,21 @@ input[type="text"]:focus { border-color: var(--accent); }
 .btn-play:active { transform: scale(0.93); }
 .btn-play:disabled { opacity: 0.35; cursor: not-allowed; }
 
+.btn-arm {
+  background: var(--warn);
+  color: #000;
+  border: none;
+  border-radius: var(--radius);
+  padding: 12px 20px;
+  font-family: var(--font);
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.btn-arm:disabled { opacity: 0.5; cursor: not-allowed; }
+
 /* ─── Ready Badge ────────────────────────────────────────────────────────────── */
 .ready-badge {
   font-size: 12px;
