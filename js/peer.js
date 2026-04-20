@@ -120,7 +120,7 @@ const PeerManager = (() => {
     _stopHeartbeat();
     _heartbeatInterval = setInterval(() => {
       send({ type: 'CLOCK_TICK', epochMs: Date.now() });
-    }, 4);
+    }, 50);
   }
 
   function _stopHeartbeat() {
