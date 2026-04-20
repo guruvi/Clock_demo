@@ -60,7 +60,9 @@ function onMessage(msg) {
       break;
 
     case 'NTP_PLAY_AT':
-      if (state.step === 2) {
+      if (state.step === 1) {
+        VideoManager.schedulePlay(msg.epochMs);
+      } else if (state.step === 2) {
         VideoManager.schedulePlay(msg.epochMs);
       } else if (state.step === 3) {
         NTPSync.handlePlayAt(msg);
@@ -87,12 +89,14 @@ function _checkOffsetResult() {
   const stepName = state.step === 1 ? 'manual' : state.step === 2 ? 'cristian' : 'ntp';
   state.results[stepName] = offset;
 
-  const el = document.getElementById(`result-${stepName}`);
-  if (el) {
-    el.textContent = `Measured offset: ${Math.round(offset)}ms`;
-    el.style.display = 'block';
-    el.classList.add('result-flash');
-    setTimeout(() => el.classList.remove('result-flash'), 1000);
+  if (state.role === 'host') {
+    const el = document.getElementById(`result-${stepName}`);
+    if (el) {
+      el.textContent = `Measured offset: ${Math.round(offset)}ms`;
+      el.style.display = 'block';
+      el.classList.add('result-flash');
+      setTimeout(() => el.classList.remove('result-flash'), 1000);
+    }
   }
 }
 
@@ -117,11 +121,11 @@ function onConnected(evt) {
     goToStep(1);
   } else {
     // Guest: show arm buttons instead of play buttons
-    ['btn-play-synced', 'btn-play-ntp'].forEach(id => {
+    ['btn-play-manual', 'btn-play-synced', 'btn-play-ntp'].forEach(id => {
       const btn = document.getElementById(id);
       if (btn) btn.style.display = 'none';
     });
-    ['btn-arm-synced', 'btn-arm-ntp'].forEach(id => {
+    ['btn-arm-manual', 'btn-arm-synced', 'btn-arm-ntp'].forEach(id => {
       const btn = document.getElementById(id);
       if (btn) btn.style.display = 'block';
     });
@@ -254,10 +258,48 @@ document.addEventListener('DOMContentLoaded', () => {
     VideoManager.triggerLoad();
   }, { once: true });
 
+  // Slider updates display
+  const slider = document.getElementById('delay-slider');
+  const delayDisplay = document.getElementById('delay-display');
+  if (slider) {
+    slider.addEventListener('input', () => {
+      if (delayDisplay) delayDisplay.textContent = `${slider.value}ms`;
+    });
+  }
+
   document.getElementById('btn-play-manual').addEventListener('click', () => {
     VideoManager.unlockAutoplay();
     VideoManager.resetForStep();
-    setTimeout(() => VideoManager.playNow(), 50);
+    const chosenDelay = parseInt(slider ? slider.value : 100);
+
+    // Countdown from 2 seconds, then play Device 1 immediately,
+    // Device 2 starts after chosenDelay ms
+    let countdown = 2;
+    const countEl = document.getElementById('manual-countdown');
+    if (countEl) { countEl.textContent = `Starting in ${countdown}s...`; countEl.style.display = 'block'; }
+
+    const countInterval = setInterval(() => {
+      countdown--;
+      if (countdown > 0) {
+        if (countEl) countEl.textContent = `Starting in ${countdown}s...`;
+      } else {
+        clearInterval(countInterval);
+        if (countEl) countEl.textContent = `Playing! Guest delayed by ${chosenDelay}ms`;
+
+        // Host plays immediately, guest plays after chosenDelay
+        const hostPlayAt = Date.now() + 100; // small buffer for scheduling
+        const guestPlayAt = hostPlayAt + chosenDelay;
+
+        PeerManager.send({ type: 'NTP_PLAY_AT', epochMs: guestPlayAt });
+        VideoManager.schedulePlay(hostPlayAt);
+      }
+    }, 1000);
+  });
+
+  document.getElementById('btn-arm-manual').addEventListener('click', () => {
+    VideoManager.unlockAutoplay();
+    const btn = document.getElementById('btn-arm-manual');
+    if (btn) { btn.textContent = '✓ Armed'; btn.disabled = true; }
   });
 
   document.getElementById('btn-run-sync').addEventListener('click', () => {
