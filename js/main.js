@@ -261,7 +261,8 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('btn-run-sync').addEventListener('click', () => {
-    if (state.role === 'host') Cristian.runSync();
+    if (state.role === 'host') Cristian.runSync();  // host pings guest
+    // guest also pings host independently — one direction each
   });
 
   document.getElementById('btn-play-synced').addEventListener('click', () => {
