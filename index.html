@@ -71,24 +71,31 @@
       <p class="hint">Tip: scan the QR from Phone B to auto-connect</p>
     </section>
 
-    <!-- Panel 1: Manual -->
+    <!-- Panel 1: Known Delay -->
     <section class="panel" id="panel-1">
       <div class="panel-header">
         <span class="step-badge">Step 1</span>
-        <h2>Manual Press</h2>
+        <h2>Known Delay</h2>
       </div>
-      <p class="panel-desc">Both users press Play at the same time. See the offset.</p>
+      <p class="panel-desc">Host schedules playback with a known delay. Guest plays after that exact delay. See the offset.</p>
 
       <div class="ready-badge loading video-ready-badge">Video loading...</div>
 
+      <div class="delay-row">
+        <span class="delay-label">Delay: <strong id="delay-display">100ms</strong></span>
+        <input id="delay-slider" type="range" min="0" max="300" step="10" value="100" />
+      </div>
+      <div id="manual-countdown" class="ntp-time" style="display:none"></div>
+
       <div class="play-area">
         <button id="btn-play-manual" class="btn-play" disabled>▶ Play</button>
+        <button id="btn-arm-manual" class="btn-arm" style="display:none">👆 Tap to Arm</button>
       </div>
 
       <div id="result-manual" class="result-box" style="display:none"></div>
 
       <div class="explainer">
-        <strong>Why it's hard:</strong> Human reaction times vary by 50-300ms. Even two people tapping simultaneously will drift apart.
+        <strong>How it works:</strong> Host sends "play at epoch T+delay". Both devices schedule playback at that exact moment. The offset shows how accurately the delay was applied.
       </div>
     </section>
 
@@ -229,6 +236,9 @@
     </div>
     <button id="btn-next" class="btn-nav" disabled>Next ▶</button>
   </div>
+
+  <!-- ── Flash Overlay ── -->
+  <div id="flash-overlay"></div>
 
   <!-- ── Toast ── -->
   <div id="toast" class="toast"></div>
