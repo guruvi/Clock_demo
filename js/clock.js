@@ -2,6 +2,7 @@
 
 const ClockDisplay = (() => {
   let _interval = null;
+  let _minOffset = null;
 
   const elMyClock = () => document.getElementById('my-clock');
   const elPeerClock = () => document.getElementById('peer-clock');
@@ -49,6 +50,8 @@ const ClockDisplay = (() => {
 
     if (myEl) myEl.textContent = formatTime(now);
 
+    const minOffsetEl = document.getElementById('clock-min-offset');
+
     if (state.peer.lastClockEpoch && peerEl) {
       peerEl.textContent = formatTime(state.peer.lastClockEpoch);
       const diff = now - state.peer.lastClockEpoch;
@@ -62,10 +65,20 @@ const ClockDisplay = (() => {
         statusEl.textContent = formatOffset(diff);
         statusEl.className = 'status-offset ' + offsetClass(abs);
       }
+
+      // Track minimum absolute offset
+      if (_minOffset === null || abs < _minOffset) {
+        _minOffset = abs;
+      }
+      if (minOffsetEl) {
+        minOffsetEl.textContent = `+${Math.round(_minOffset)}ms`;
+        minOffsetEl.className = 'offset-value ' + offsetClass(_minOffset);
+      }
     } else {
       if (peerEl) peerEl.textContent = '--:--:--.---';
       if (offsetEl) { offsetEl.textContent = '---'; offsetEl.className = 'offset-value'; }
       if (statusEl) { statusEl.textContent = '---'; statusEl.className = 'status-offset'; }
+      if (minOffsetEl) { minOffsetEl.textContent = '—'; minOffsetEl.className = 'offset-value'; }
     }
   }
 
